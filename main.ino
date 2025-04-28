@@ -18,8 +18,8 @@ const long  gmtOffset_sec = 0;      // Change this based on your timezone (in se
 const int   daylightOffset_sec = 3600; // Change this for daylight saving time if needed
 
 // WiFi credentials
-const char* ssid = "ilias";
-const char* password = "ilias1234";
+const char* ssid = "Alarm";
+const char* password = "Alarm1234";
 
 // Current day of week
 String currentDay = "Monday";
@@ -251,6 +251,7 @@ void updateAlarmsFromForm(DayAlarms &alarms) {
     alarms.hour1 = atoi(server.arg("HH_ALARM1").c_str());
     alarms.min1 = atoi(server.arg("MM_ALARM1").c_str());
     alarms.sec1 = atoi(server.arg("SS_ALARM1").c_str());
+    alarms.setCounter1 = 1;
   }
   
   if (server.hasArg("HH_ALARM2") && server.hasArg("MM_ALARM2") && server.hasArg("SS_ALARM2")) {
@@ -258,6 +259,7 @@ void updateAlarmsFromForm(DayAlarms &alarms) {
     alarms.hour2 = atoi(server.arg("HH_ALARM2").c_str());
     alarms.min2 = atoi(server.arg("MM_ALARM2").c_str());
     alarms.sec2 = atoi(server.arg("SS_ALARM2").c_str());
+    alarms.setCounter2 = 1;
   }
   
   if (server.hasArg("HH_ALARM3") && server.hasArg("MM_ALARM3") && server.hasArg("SS_ALARM3")) {
@@ -265,6 +267,7 @@ void updateAlarmsFromForm(DayAlarms &alarms) {
     alarms.hour3 = atoi(server.arg("HH_ALARM3").c_str());
     alarms.min3 = atoi(server.arg("MM_ALARM3").c_str());
     alarms.sec3 = atoi(server.arg("SS_ALARM3").c_str());
+    alarms.setCounter3 = 1;  
   }
   
   if (server.hasArg("HH_ALARM4") && server.hasArg("MM_ALARM4") && server.hasArg("SS_ALARM4")) {
@@ -272,6 +275,7 @@ void updateAlarmsFromForm(DayAlarms &alarms) {
     alarms.hour4 = atoi(server.arg("HH_ALARM4").c_str());
     alarms.min4 = atoi(server.arg("MM_ALARM4").c_str());
     alarms.sec4 = atoi(server.arg("SS_ALARM4").c_str());
+    alarms.setCounter4 = 1;
   }
   
   if (server.hasArg("HH_ALARM5") && server.hasArg("MM_ALARM5") && server.hasArg("SS_ALARM5")) {
@@ -279,6 +283,7 @@ void updateAlarmsFromForm(DayAlarms &alarms) {
     alarms.hour5 = atoi(server.arg("HH_ALARM5").c_str());
     alarms.min5 = atoi(server.arg("MM_ALARM5").c_str());
     alarms.sec5 = atoi(server.arg("SS_ALARM5").c_str());
+    alarms.setCounter5 = 1;
   }
   
   if (server.hasArg("HH_ALARM6") && server.hasArg("MM_ALARM6") && server.hasArg("SS_ALARM6")) {
@@ -286,6 +291,7 @@ void updateAlarmsFromForm(DayAlarms &alarms) {
     alarms.hour6 = atoi(server.arg("HH_ALARM6").c_str());
     alarms.min6 = atoi(server.arg("MM_ALARM6").c_str());
     alarms.sec6 = atoi(server.arg("SS_ALARM6").c_str());
+    alarms.setCounter6 = 1;
   }
   
   if (server.hasArg("HH_ALARM7") && server.hasArg("MM_ALARM7") && server.hasArg("SS_ALARM7")) {
@@ -293,6 +299,7 @@ void updateAlarmsFromForm(DayAlarms &alarms) {
     alarms.hour7 = atoi(server.arg("HH_ALARM7").c_str());
     alarms.min7 = atoi(server.arg("MM_ALARM7").c_str());
     alarms.sec7 = atoi(server.arg("SS_ALARM7").c_str());
+    alarms.setCounter7 = 1;
   }
   
   if (server.hasArg("HH_ALARM8") && server.hasArg("MM_ALARM8") && server.hasArg("SS_ALARM8")) {
@@ -300,6 +307,7 @@ void updateAlarmsFromForm(DayAlarms &alarms) {
     alarms.hour8 = atoi(server.arg("HH_ALARM8").c_str());
     alarms.min8 = atoi(server.arg("MM_ALARM8").c_str());
     alarms.sec8 = atoi(server.arg("SS_ALARM8").c_str());
+    alarms.setCounter8 = 1;
   }
 }
 
@@ -718,16 +726,98 @@ void setup(void) {
   server.begin();
   Serial.println("HTTP server started");
 }
-
-void alarm_on(void) {
+void alarm_on(String alarmName) {
+  // Display the alarm name on LCD
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("ALARM ACTIVE:");
+  lcd.setCursor(0, 1);
+  lcd.print(alarmName);
+  
+  // Debug output
+  Serial.print("Alarm triggered: ");
+  Serial.println(alarmName);
+  
+  // Sound the buzzer
   digitalWrite(buzzerPin, LOW);  // Turn on buzzer
-  delay(5000);                  // Keep it on for 5 seconds
+  
+  // Flash the LED to make it more noticeable
+  for (int i = 0; i < 5; i++) {
+    digitalWrite(ledPin, LOW);  // Turn on LED
+    delay(500);
+    digitalWrite(ledPin, HIGH); // Turn off LED
+    delay(500);
+  }
+  
   digitalWrite(buzzerPin, HIGH); // Turn off buzzer
 }
 
+unsigned long alarmStartTime = 0;
+bool alarmActive = false;
+int alarmState = 0;
+String currentAlarmName = "";
+
+void startAlarm(String alarmName) {
+  alarmActive = true;
+  alarmStartTime = millis();
+  alarmState = 0;
+  currentAlarmName = alarmName;
+  
+  // Display on LCD
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("ALARM ACTIVE:");
+  lcd.setCursor(0, 1);
+  lcd.print(alarmName);
+  
+  // Debug output
+  Serial.print("Alarm triggered: ");
+  Serial.println(alarmName);
+  
+  // Turn on buzzer
+  digitalWrite(buzzerPin, LOW);  // Active LOW - change to HIGH if your buzzer is active HIGH
+}
+
+void handleAlarm() {
+  if (!alarmActive) return;
+  
+  unsigned long currentTime = millis();
+  unsigned long elapsedTime = currentTime - alarmStartTime;
+  
+  // Total alarm duration: 5 seconds
+  if (elapsedTime > 5000) {
+    // Turn off buzzer and end alarm
+    digitalWrite(buzzerPin, HIGH);  // Active LOW - change to HIGH if your buzzer is active HIGH
+    digitalWrite(ledPin, HIGH);     // Ensure LED is off
+    alarmActive = false;
+    return;
+  }
+  
+  // Flash LED every 400ms (200ms on, 200ms off)
+  if ((elapsedTime / 400) % 2 == 0) {
+    digitalWrite(ledPin, LOW);  // LED on
+  } else {
+    digitalWrite(ledPin, HIGH); // LED off
+  }
+}
+
 void loop(void) {
+
+  // Handle server requests
+  server.handleClient();
+  
+  // If an alarm is active, handle it
+  if (alarmActive) {
+    handleAlarm();
+  }
+
   // Update time from internal clock
   updateTime();
+
+  // Update LCD only every second (not on every cycle)
+  static unsigned long lastDisplayUpdate = 0;
+  if (millis() - lastDisplayUpdate >= 1000) {
+    lastDisplayUpdate = millis();
   
   // Print time to serial
   Serial.print("Time: ");
@@ -762,96 +852,116 @@ void loop(void) {
   lcd.print(p_month);
   lcd.print("/");
   lcd.print(p_year);
+}
   
-  // Check for alarms
-  // Only trigger alarms if the current day matches the selected day for the alarm
-  // Alarms should only trigger once per minute (when seconds are 0)
-  if (Sec == 0) {
-    if (Hor == alarm_hour1 && Min == alarm_min1 && 
-        (currentDay.equalsIgnoreCase(selectedDay) || selectedDay == "everyday")) {
+   // Check for alarms - only if no alarm is currently active and seconds are 0
+   if (!alarmActive && Sec == 0) {
+    // Get the current day's alarms structure
+    DayAlarms* currentDayAlarms = getDayAlarmsByNum(currentDayNum);
+    
+    // Check alarms using the current day's alarm times, not the global variables
+    if (currentDayAlarms->setCounter1 == 1 && 
+        Hor == currentDayAlarms->hour1 && 
+        Min == currentDayAlarms->min1) {
       Serial.println("1st Alarm");
-      if (setCounter1 == 1) {
-        set1 = "NOT SET";
-        alarm_on();
-        setCounter1 = 0;
-      }
+      String name = currentDayAlarms->name1.length() > 0 ? currentDayAlarms->name1 : "Alarm 1";
+      startAlarm(name);
+      currentDayAlarms->setCounter1 = 0;
+      currentDayAlarms->set1 = "NOT SET";
+      // Also update legacy variables for backward compatibility
+      setCounter1 = 0;
+      set1 = "NOT SET";
     }
-
-    if (Hor == alarm_hour2 && Min == alarm_min2 && 
-        (currentDay.equalsIgnoreCase(selectedDay) || selectedDay == "everyday")) {
+    
+    else if (currentDayAlarms->setCounter2 == 1 && 
+             Hor == currentDayAlarms->hour2 && 
+             Min == currentDayAlarms->min2) {
       Serial.println("2nd Alarm");
-      if (setCounter2 == 1) {
-        set2 = "NOT SET";
-        alarm_on();
-        setCounter2 = 0;
-      }
+      String name = currentDayAlarms->name2.length() > 0 ? currentDayAlarms->name2 : "Alarm 2";
+      startAlarm(name);
+      currentDayAlarms->setCounter2 = 0;
+      currentDayAlarms->set2 = "NOT SET";
+      setCounter2 = 0;
+      set2 = "NOT SET";
     }
-
-    if (Hor == alarm_hour3 && Min == alarm_min3 && 
-        (currentDay.equalsIgnoreCase(selectedDay) || selectedDay == "everyday")) {
+    
+    else if (currentDayAlarms->setCounter3 == 1 && 
+             Hor == currentDayAlarms->hour3 && 
+             Min == currentDayAlarms->min3) {
       Serial.println("3rd Alarm");
-      if (setCounter3 == 1) {
-        set3 = "NOT SET";
-        alarm_on();
-        setCounter3 = 0;
-      }
+      String name = currentDayAlarms->name3.length() > 0 ? currentDayAlarms->name3 : "Alarm 3";
+      startAlarm(name);
+      currentDayAlarms->setCounter3 = 0;
+      currentDayAlarms->set3 = "NOT SET";
+      setCounter3 = 0;
+      set3 = "NOT SET";
     }
-
-    if (Hor == alarm_hour4 && Min == alarm_min4 && 
-        (currentDay.equalsIgnoreCase(selectedDay) || selectedDay == "everyday")) {
+    
+    else if (currentDayAlarms->setCounter4 == 1 && 
+             Hor == currentDayAlarms->hour4 && 
+             Min == currentDayAlarms->min4) {
       Serial.println("4th Alarm");
-      if (setCounter4 == 1) {
-        set4 = "NOT SET";
-        alarm_on();
-        setCounter4 = 0;
-      }
+      String name = currentDayAlarms->name4.length() > 0 ? currentDayAlarms->name4 : "Alarm 4";
+      startAlarm(name);
+      currentDayAlarms->setCounter4 = 0;
+      currentDayAlarms->set4 = "NOT SET";
+      setCounter4 = 0;
+      set4 = "NOT SET";
     }
-
+    
     // Only check additional alarms if it's not Friday
     if (!currentDay.equalsIgnoreCase("Friday")) {
-      if (Hor == alarm_hour5 && Min == alarm_min5 && 
-          (currentDay.equalsIgnoreCase(selectedDay) || selectedDay == "everyday")) {
+      if (currentDayAlarms->setCounter5 == 1 && 
+          Hor == currentDayAlarms->hour5 && 
+          Min == currentDayAlarms->min5) {
         Serial.println("5th Alarm");
-        if (setCounter5 == 1) {
-          set5 = "NOT SET";
-          alarm_on();
-          setCounter5 = 0;
-        }
+        String name = currentDayAlarms->name5.length() > 0 ? currentDayAlarms->name5 : "Alarm 5";
+        startAlarm(name);
+        currentDayAlarms->setCounter5 = 0;
+        currentDayAlarms->set5 = "NOT SET";
+        setCounter5 = 0;
+        set5 = "NOT SET";
       }
       
-      if (Hor == alarm_hour6 && Min == alarm_min6 && 
-          (currentDay.equalsIgnoreCase(selectedDay) || selectedDay == "everyday")) {
+      else if (currentDayAlarms->setCounter6 == 1 && 
+               Hor == currentDayAlarms->hour6 && 
+               Min == currentDayAlarms->min6) {
         Serial.println("6th Alarm");
-        if (setCounter6 == 1) {
-          set6 = "NOT SET";
-          alarm_on();
-          setCounter6 = 0;
-        }
+        String name = currentDayAlarms->name6.length() > 0 ? currentDayAlarms->name6 : "Alarm 6";
+        startAlarm(name);
+        currentDayAlarms->setCounter6 = 0;
+        currentDayAlarms->set6 = "NOT SET";
+        setCounter6 = 0;
+        set6 = "NOT SET";
       }
       
-      if (Hor == alarm_hour7 && Min == alarm_min7 && 
-          (currentDay.equalsIgnoreCase(selectedDay) || selectedDay == "everyday")) {
+      else if (currentDayAlarms->setCounter7 == 1 && 
+               Hor == currentDayAlarms->hour7 && 
+               Min == currentDayAlarms->min7) {
         Serial.println("7th Alarm");
-        if (setCounter7 == 1) {
-          set7 = "NOT SET";
-          alarm_on();
-          setCounter7 = 0;
-        }
+        String name = currentDayAlarms->name7.length() > 0 ? currentDayAlarms->name7 : "Alarm 7";
+        startAlarm(name);
+        currentDayAlarms->setCounter7 = 0;
+        currentDayAlarms->set7 = "NOT SET";
+        setCounter7 = 0;
+        set7 = "NOT SET";
       }
       
-      if (Hor == alarm_hour8 && Min == alarm_min8 && 
-          (currentDay.equalsIgnoreCase(selectedDay) || selectedDay == "everyday")) {
+      else if (currentDayAlarms->setCounter8 == 1 && 
+               Hor == currentDayAlarms->hour8 && 
+               Min == currentDayAlarms->min8) {
         Serial.println("8th Alarm");
-        if (setCounter8 == 1) {
-          set8 = "NOT SET";
-          alarm_on();
-          setCounter8 = 0;
-        }
+        String name = currentDayAlarms->name8.length() > 0 ? currentDayAlarms->name8 : "Alarm 8";
+        startAlarm(name);
+        currentDayAlarms->setCounter8 = 0;
+        currentDayAlarms->set8 = "NOT SET";
+        setCounter8 = 0;
+        set8 = "NOT SET";
       }
     }
   }
 
   server.handleClient();
-  delay(1000);
+  delay(50);
 }
 
