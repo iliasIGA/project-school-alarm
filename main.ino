@@ -3,7 +3,9 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <time.h>
-#include "index.h" // Assuming this file contains your HTML content
+#include "index.h"
+#include <Preferences.h>
+#include <RTClib.h>
 
 const int SDA_PIN = 21;  // GPIO21 for SDA
 const int SCL_PIN = 22;  // GPIO22 for SCL
@@ -11,11 +13,13 @@ const int SCL_PIN = 22;  // GPIO22 for SCL
 // I2C LCD setup (0x27 is the default I2C address, adjust if needed)
 // Parameters: I2C address, columns, rows
 LiquidCrystal_I2C lcd(0x27, 16, 2);
+RTC_DS3231 rtc;
 
 // NTP Server settings
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 0;      // Change this based on your timezone (in seconds)
 const int   daylightOffset_sec = 3600; // Change this for daylight saving time if needed
+Preferences preferences;
 
 // WiFi credentials
 const char* ssid = "Alarm";
@@ -66,7 +70,7 @@ struct DayAlarms {
 };
 
 // Function pre-declarations
-void copyAlarms(DayAlarms &source, DayAlarms &destination);
+
 void updateAlarmsFromForm(DayAlarms &alarms);
 
 // Create alarm status for each day
@@ -158,40 +162,114 @@ int getDayOfWeekNum(String day) {
 
 // Function to update time from internal clock
 void updateTime() {
-  struct tm timeinfo;
-  if(!getLocalTime(&timeinfo)){
-    Serial.println("Failed to obtain time");
-    return;
-  }
+  DateTime now = rtc.now();
+  Hor = now.hour();
+  Min = now.minute();
+  Sec = now.second();
+  p_day = now.day();
+  p_month = now.month();
+  p_year = now.year();
+  day_of_week = now.dayOfTheWeek(); // 0=Sunday
   
-  Hor = timeinfo.tm_hour;
-  Min = timeinfo.tm_min;
-  Sec = timeinfo.tm_sec;
-  
-  p_day = timeinfo.tm_mday;
-  p_month = timeinfo.tm_mon + 1;  // tm_mon is 0-11
-  p_year = timeinfo.tm_year + 1900; // tm_year is years since 1900
-  day_of_week = timeinfo.tm_wday; // 0 = Sunday, 1 = Monday, etc.
-  
-  // Update current day string and number
   currentDay = getDayOfWeek(day_of_week);
   currentDayNum = day_of_week;
 }
 
+void saveAlarmsToFlash() {
+  preferences.begin("alarms", false);
+  
+  // Save alarms for each day
+  saveDayAlarms("monday", mondayAlarms);
+  saveDayAlarms("tuesday", tuesdayAlarms);
+  saveDayAlarms("wednesday", wednesdayAlarms);
+  saveDayAlarms("thursday", thursdayAlarms);
+  saveDayAlarms("friday", fridayAlarms);
+  saveDayAlarms("saturday", saturdayAlarms);
+  saveDayAlarms("sunday", sundayAlarms);
+  
+  preferences.end();
+}
+
+void saveDayAlarms(const char* dayName, DayAlarms &alarms) {
+  String prefix = dayName;
+  preferences.putInt((prefix + "_cnt1").c_str(), alarms.setCounter1);
+  preferences.putInt((prefix + "_cnt2").c_str(), alarms.setCounter2);
+  preferences.putInt((prefix + "_cnt3").c_str(), alarms.setCounter3);
+  preferences.putInt((prefix + "_cnt4").c_str(), alarms.setCounter4);
+  preferences.putInt((prefix + "_cnt5").c_str(), alarms.setCounter5);
+  preferences.putInt((prefix + "_cnt6").c_str(), alarms.setCounter6);
+  preferences.putInt((prefix + "_cnt7").c_str(), alarms.setCounter7);
+  preferences.putInt((prefix + "_cnt8").c_str(), alarms.setCounter8);
+
+  preferences.putString((prefix + "_time1").c_str(), alarms.set1);
+  preferences.putString((prefix + "_time2").c_str(), alarms.set2);
+  preferences.putString((prefix + "_time3").c_str(), alarms.set3);
+  preferences.putString((prefix + "_time4").c_str(), alarms.set4);
+  preferences.putString((prefix + "_time5").c_str(), alarms.set5);
+  preferences.putString((prefix + "_time6").c_str(), alarms.set6);
+  preferences.putString((prefix + "_time7").c_str(), alarms.set7);
+  preferences.putString((prefix + "_time8").c_str(), alarms.set8);
+  
+  preferences.putString((prefix + "_name1").c_str(), alarms.name1);
+  preferences.putString((prefix + "_name2").c_str(), alarms.name2);
+  preferences.putString((prefix + "_name3").c_str(), alarms.name3);
+  preferences.putString((prefix + "_name4").c_str(), alarms.name4);
+  preferences.putString((prefix + "_name5").c_str(), alarms.name5);
+  preferences.putString((prefix + "_name6").c_str(), alarms.name6);
+  preferences.putString((prefix + "_name7").c_str(), alarms.name7);
+  preferences.putString((prefix + "_name8").c_str(), alarms.name8);
+  
+}
+
+void loadAlarmsFromFlash() {
+  preferences.begin("alarms", true);
+  
+  loadDayAlarms("monday", mondayAlarms);
+  loadDayAlarms("tuesday", tuesdayAlarms);
+  loadDayAlarms("wednesday", wednesdayAlarms);
+  loadDayAlarms("thursday", thursdayAlarms);
+  loadDayAlarms("friday", fridayAlarms);
+  loadDayAlarms("saturday", saturdayAlarms);
+  loadDayAlarms("sunday", sundayAlarms);
+  
+  preferences.end();
+}
+
+void loadDayAlarms(const char* dayName, DayAlarms &alarms) {
+  String prefix = dayName;
+  alarms.setCounter1 = preferences.getInt((prefix + "_cnt1").c_str(), 0);
+  alarms.setCounter2 = preferences.getInt((prefix + "_cnt2").c_str(), 0);
+  alarms.setCounter3 = preferences.getInt((prefix + "_cnt3").c_str(), 0);
+  alarms.setCounter4 = preferences.getInt((prefix + "_cnt4").c_str(), 0);
+  alarms.setCounter5 = preferences.getInt((prefix + "_cnt5").c_str(), 0);
+  alarms.setCounter6 = preferences.getInt((prefix + "_cnt6").c_str(), 0);
+  alarms.setCounter7 = preferences.getInt((prefix + "_cnt7").c_str(), 0);
+  alarms.setCounter8 = preferences.getInt((prefix + "_cnt8").c_str(), 0);
+  
+  alarms.set1 = preferences.getString((prefix + "_time1").c_str(), "");
+  alarms.set2 = preferences.getString((prefix + "_time2").c_str(), "");
+  alarms.set3 = preferences.getString((prefix + "_time3").c_str(), "");
+  alarms.set4 = preferences.getString((prefix + "_time4").c_str(), "");
+  alarms.set5 = preferences.getString((prefix + "_time5").c_str(), "");
+  alarms.set6 = preferences.getString((prefix + "_time6").c_str(), "");
+  alarms.set7 = preferences.getString((prefix + "_time7").c_str(), "");
+  alarms.set8 = preferences.getString((prefix + "_time8").c_str(), "");
+  
+  alarms.name1 = preferences.getString((prefix + "_name1").c_str(), "");
+  alarms.name2 = preferences.getString((prefix + "_name2").c_str(), "");
+  alarms.name3 = preferences.getString((prefix + "_name3").c_str(), "");
+  alarms.name4 = preferences.getString((prefix + "_name4").c_str(), "");
+  alarms.name5 = preferences.getString((prefix + "_name5").c_str(), "");
+  alarms.name6 = preferences.getString((prefix + "_name6").c_str(), "");
+  alarms.name7 = preferences.getString((prefix + "_name7").c_str(), "");
+  alarms.name8 = preferences.getString((prefix + "_name8").c_str(), "");
+
+}
+
 // Function to set the internal clock
 void setTime(int year, int month, int day, int hour, int minute, int second) {
-  struct tm timeinfo;
-  
-  timeinfo.tm_year = year - 1900;
-  timeinfo.tm_mon = month - 1;
-  timeinfo.tm_mday = day;
-  timeinfo.tm_hour = hour;
-  timeinfo.tm_min = minute;
-  timeinfo.tm_sec = second;
-  
-  time_t t = mktime(&timeinfo);
-  struct timeval now = { .tv_sec = t };
-  settimeofday(&now, NULL);
+  rtc.adjust(DateTime(year, month, day, hour, minute, second));
+  // The ESP32 internal time will be updated through updateTime() 
 }
 
 // Helper function to get DayAlarms pointer for a given day
@@ -574,15 +652,18 @@ void handleRoot() {
     alarmStatus.replace("@@SUN_SELECTED@@", "");
     
     // Update alarm status strings for the selected day
-    selectedAlarms->set1 = (selectedAlarms->setCounter1 == 1) ? "SET" : "NOT SET";
-    selectedAlarms->set2 = (selectedAlarms->setCounter2 == 1) ? "SET" : "NOT SET";
-    selectedAlarms->set3 = (selectedAlarms->setCounter3 == 1) ? "SET" : "NOT SET";
-    selectedAlarms->set4 = (selectedAlarms->setCounter4 == 1) ? "SET" : "NOT SET";
-    selectedAlarms->set5 = (selectedAlarms->setCounter5 == 1) ? "SET" : "NOT SET";
-    selectedAlarms->set6 = (selectedAlarms->setCounter6 == 1) ? "SET" : "NOT SET";
-    selectedAlarms->set7 = (selectedAlarms->setCounter7 == 1) ? "SET" : "NOT SET";
-    selectedAlarms->set8 = (selectedAlarms->setCounter8 == 1) ? "SET" : "NOT SET";
     
+  alarmStatus.replace("@@CURRENT_DAY@@", currentDay);
+  alarmStatus.replace("@@SELECTED_DAY@@", displayDay);
+  alarmStatus.replace("@@SET1@@", (selectedAlarms->setCounter1 == 1) ? selectedAlarms->set1 : "NOT SET");
+  alarmStatus.replace("@@SET2@@", (selectedAlarms->setCounter2 == 1) ? selectedAlarms->set2 : "NOT SET");
+  alarmStatus.replace("@@SET3@@", (selectedAlarms->setCounter3 == 1) ? selectedAlarms->set3 : "NOT SET");
+  alarmStatus.replace("@@SET4@@", (selectedAlarms->setCounter4 == 1) ? selectedAlarms->set4 : "NOT SET");
+  alarmStatus.replace("@@SET5@@", (selectedAlarms->setCounter5 == 1) ? selectedAlarms->set5 : "NOT SET");
+  alarmStatus.replace("@@SET6@@", (selectedAlarms->setCounter6 == 1) ? selectedAlarms->set6 : "NOT SET");
+  alarmStatus.replace("@@SET7@@", (selectedAlarms->setCounter7 == 1) ? selectedAlarms->set7 : "NOT SET");
+  alarmStatus.replace("@@SET8@@", (selectedAlarms->setCounter8 == 1) ? selectedAlarms->set8 : "NOT SET");
+
     // Replace placeholders with actual values
     alarmStatus.replace("@@CURRENT_DAY@@", currentDay);
     alarmStatus.replace("@@SELECTED_DAY@@", displayDay);
@@ -675,12 +756,69 @@ void handleNotFound() {
 }
 
 void setup(void) {
+  
+  Wire.begin(SDA_PIN, SCL_PIN);
+  // Initialize RTC with retries
+   // Initialize RTC with proper error handling
+   if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC!");
+    Serial.println("Checking I2C connections...");
+    while (1) {
+      // Blink LED to indicate error
+      digitalWrite(ledPin, !digitalRead(ledPin));
+      delay(500);
+    }
+  }
+
+  // Check if RTC lost power
+  if (rtc.lostPower()) {
+    Serial.println("RTC lost power, setting to compile time!");
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  }
+
+  // Add I2C scanner for debugging
+  Serial.println("Scanning I2C devices...");
+  byte error, address;
+  for(address = 1; address < 127; address++ ) {
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+    if (error == 0) {
+      Serial.print("Found device at 0x");
+      Serial.println(address, HEX);
+    }
+  }
+
   // Initialize pins
   pinMode(ledPin, OUTPUT);
   pinMode(buzzerPin, OUTPUT);
   digitalWrite(ledPin, HIGH);
   digitalWrite(buzzerPin, HIGH);
-  
+
+ // Initialize RTC with retries
+ bool rtcStarted = false;
+ for(int i=0; i<5; i++) {
+   if (rtc.begin()) {
+     rtcStarted = true;
+     break;
+   }
+   Serial.println("RTC not found, retrying...");
+   delay(1000);
+ }
+ 
+ if (!rtcStarted) {
+   Serial.println("Couldn't find RTC. Check wiring!");
+   while(1); // Halt if RTC fails
+ }
+
+ if (rtc.lostPower()) {
+   // Set with compile time or NTP time
+   rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+ }
+
+  preferences.begin("alarms", false);
+  loadAlarmsFromFlash(); // Load saved alarms on boot
+  preferences.end();
+
   Serial.begin(115200);  // ESP32 typically uses higher baud rate
   
   // Initialize I2C
@@ -698,9 +836,6 @@ void setup(void) {
   Serial.print("IP address: ");
   Serial.println(WiFi.softAPIP());
   
-  // Initialize internal time (starting with default values)
-  // You can set your own default time here
-  setTime(2025, 4, 20, 12, 0, 0); // Year, Month, Day, Hour, Minute, Second
   
   // Display initial message on LCD
   lcd.setCursor(0, 0);
@@ -866,11 +1001,6 @@ void loop(void) {
       Serial.println("1st Alarm");
       String name = currentDayAlarms->name1.length() > 0 ? currentDayAlarms->name1 : "Alarm 1";
       startAlarm(name);
-      currentDayAlarms->setCounter1 = 0;
-      currentDayAlarms->set1 = "NOT SET";
-      // Also update legacy variables for backward compatibility
-      setCounter1 = 0;
-      set1 = "NOT SET";
     }
     
     else if (currentDayAlarms->setCounter2 == 1 && 
@@ -879,10 +1009,6 @@ void loop(void) {
       Serial.println("2nd Alarm");
       String name = currentDayAlarms->name2.length() > 0 ? currentDayAlarms->name2 : "Alarm 2";
       startAlarm(name);
-      currentDayAlarms->setCounter2 = 0;
-      currentDayAlarms->set2 = "NOT SET";
-      setCounter2 = 0;
-      set2 = "NOT SET";
     }
     
     else if (currentDayAlarms->setCounter3 == 1 && 
@@ -891,10 +1017,6 @@ void loop(void) {
       Serial.println("3rd Alarm");
       String name = currentDayAlarms->name3.length() > 0 ? currentDayAlarms->name3 : "Alarm 3";
       startAlarm(name);
-      currentDayAlarms->setCounter3 = 0;
-      currentDayAlarms->set3 = "NOT SET";
-      setCounter3 = 0;
-      set3 = "NOT SET";
     }
     
     else if (currentDayAlarms->setCounter4 == 1 && 
@@ -903,10 +1025,6 @@ void loop(void) {
       Serial.println("4th Alarm");
       String name = currentDayAlarms->name4.length() > 0 ? currentDayAlarms->name4 : "Alarm 4";
       startAlarm(name);
-      currentDayAlarms->setCounter4 = 0;
-      currentDayAlarms->set4 = "NOT SET";
-      setCounter4 = 0;
-      set4 = "NOT SET";
     }
     
     // Only check additional alarms if it's not Friday
@@ -917,10 +1035,6 @@ void loop(void) {
         Serial.println("5th Alarm");
         String name = currentDayAlarms->name5.length() > 0 ? currentDayAlarms->name5 : "Alarm 5";
         startAlarm(name);
-        currentDayAlarms->setCounter5 = 0;
-        currentDayAlarms->set5 = "NOT SET";
-        setCounter5 = 0;
-        set5 = "NOT SET";
       }
       
       else if (currentDayAlarms->setCounter6 == 1 && 
@@ -929,10 +1043,6 @@ void loop(void) {
         Serial.println("6th Alarm");
         String name = currentDayAlarms->name6.length() > 0 ? currentDayAlarms->name6 : "Alarm 6";
         startAlarm(name);
-        currentDayAlarms->setCounter6 = 0;
-        currentDayAlarms->set6 = "NOT SET";
-        setCounter6 = 0;
-        set6 = "NOT SET";
       }
       
       else if (currentDayAlarms->setCounter7 == 1 && 
@@ -941,10 +1051,6 @@ void loop(void) {
         Serial.println("7th Alarm");
         String name = currentDayAlarms->name7.length() > 0 ? currentDayAlarms->name7 : "Alarm 7";
         startAlarm(name);
-        currentDayAlarms->setCounter7 = 0;
-        currentDayAlarms->set7 = "NOT SET";
-        setCounter7 = 0;
-        set7 = "NOT SET";
       }
       
       else if (currentDayAlarms->setCounter8 == 1 && 
@@ -953,10 +1059,6 @@ void loop(void) {
         Serial.println("8th Alarm");
         String name = currentDayAlarms->name8.length() > 0 ? currentDayAlarms->name8 : "Alarm 8";
         startAlarm(name);
-        currentDayAlarms->setCounter8 = 0;
-        currentDayAlarms->set8 = "NOT SET";
-        setCounter8 = 0;
-        set8 = "NOT SET";
       }
     }
   }
