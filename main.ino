@@ -128,7 +128,7 @@ int alarm_hour8, alarm_min8, alarm_sec8;
 
 // Define output pins for ESP32
 const int buzzerPin = 26;  // GPIO26 for buzzer
-const int ledPin = 27;     // GPIO27 for LED
+const int ledPin = 26;     // GPIO27 for LED
 
 // Create web server on port 80
 WebServer server(80);
@@ -926,13 +926,6 @@ void handleAlarm() {
     digitalWrite(ledPin, HIGH);     // Ensure LED is off
     alarmActive = false;
     return;
-  }
-  
-  // Flash LED every 400ms (200ms on, 200ms off)
-  if ((elapsedTime / 400) % 2 == 0) {
-    digitalWrite(ledPin, LOW);  // LED on
-  } else {
-    digitalWrite(ledPin, HIGH); // LED off
   }
 }
 
