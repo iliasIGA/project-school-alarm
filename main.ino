@@ -128,7 +128,7 @@ int alarm_hour8, alarm_min8, alarm_sec8;
 
 // Define output pins for ESP32
 const int buzzerPin = 26;  // GPIO26 for buzzer
-const int ledPin = 26;     // GPIO27 for LED
+const int Man_BUZ = 26;     // GPIO27 for LED
 
 // Create web server on port 80
 WebServer server(80);
@@ -553,13 +553,13 @@ void handleRoot() {
 
   // Handle Appliance Actions
   if (server.hasArg("LED_ON")) {
-    digitalWrite(ledPin, LOW); // Turn ON appliance
+    digitalWrite(Man_BUZ, LOW); // Turn ON appliance
     server.send(200, "text/html", APPLIANCES_ON);
     return;
   }
   
   if (server.hasArg("LED_OFF")) {
-    digitalWrite(ledPin, HIGH); // Turn OFF appliance
+    digitalWrite(Man_BUZ, HIGH); // Turn OFF appliance
     server.send(200, "text/html", APPLIANCES_OFF);
     return;
   }
@@ -756,19 +756,6 @@ void handleNotFound() {
 }
 
 void setup(void) {
-  
-  Wire.begin(SDA_PIN, SCL_PIN);
-  // Initialize RTC with retries
-   // Initialize RTC with proper error handling
-   if (!rtc.begin()) {
-    Serial.println("Couldn't find RTC!");
-    Serial.println("Checking I2C connections...");
-    while (1) {
-      // Blink LED to indicate error
-      digitalWrite(ledPin, !digitalRead(ledPin));
-      delay(500);
-    }
-  }
 
   // Check if RTC lost power
   if (rtc.lostPower()) {
@@ -789,9 +776,9 @@ void setup(void) {
   }
 
   // Initialize pins
-  pinMode(ledPin, OUTPUT);
+  pinMode(Man_BUZ, OUTPUT);
   pinMode(buzzerPin, OUTPUT);
-  digitalWrite(ledPin, HIGH);
+  digitalWrite(Man_BUZ, HIGH);
   digitalWrite(buzzerPin, HIGH);
 
  // Initialize RTC with retries
@@ -874,16 +861,7 @@ void alarm_on(String alarmName) {
   Serial.println(alarmName);
   
   // Sound the buzzer
-  digitalWrite(buzzerPin, LOW);  // Turn on buzzer
-  
-  // Flash the LED to make it more noticeable
-  for (int i = 0; i < 5; i++) {
-    digitalWrite(ledPin, LOW);  // Turn on LED
-    delay(500);
-    digitalWrite(ledPin, HIGH); // Turn off LED
-    delay(500);
-  }
-  
+  digitalWrite(buzzerPin, LOW);  // Turn on buzzer 
   digitalWrite(buzzerPin, HIGH); // Turn off buzzer
 }
 
@@ -923,7 +901,6 @@ void handleAlarm() {
   if (elapsedTime > 5000) {
     // Turn off buzzer and end alarm
     digitalWrite(buzzerPin, HIGH);  // Active LOW - change to HIGH if your buzzer is active HIGH
-    digitalWrite(ledPin, HIGH);     // Ensure LED is off
     alarmActive = false;
     return;
   }
