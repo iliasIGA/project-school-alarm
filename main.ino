@@ -10,6 +10,7 @@
 const int SDA_PIN = 21;  // GPIO21 for SDA
 const int SCL_PIN = 22;  // GPIO22 for SCL
 
+
 // I2C LCD setup (0x27 is the default I2C address, adjust if needed)
 // Parameters: I2C address, columns, rows
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -160,8 +161,12 @@ int getDayOfWeekNum(String day) {
   return -1; // Invalid day
 }
 
+bool rtcInitialized = false;
+
 // Function to update time from internal clock
 void updateTime() {
+  if (!rtcInitialized) return;
+  
   DateTime now = rtc.now();
   Hor = now.hour();
   Min = now.minute();
@@ -169,16 +174,13 @@ void updateTime() {
   p_day = now.day();
   p_month = now.month();
   p_year = now.year();
-  day_of_week = now.dayOfTheWeek(); // 0=Sunday
-  
+  day_of_week = now.dayOfTheWeek();
   currentDay = getDayOfWeek(day_of_week);
   currentDayNum = day_of_week;
 }
 
 void saveAlarmsToFlash() {
   preferences.begin("alarms", false);
-  
-  // Save alarms for each day
   saveDayAlarms("monday", mondayAlarms);
   saveDayAlarms("tuesday", tuesdayAlarms);
   saveDayAlarms("wednesday", wednesdayAlarms);
@@ -186,7 +188,6 @@ void saveAlarmsToFlash() {
   saveDayAlarms("friday", fridayAlarms);
   saveDayAlarms("saturday", saturdayAlarms);
   saveDayAlarms("sunday", sundayAlarms);
-  
   preferences.end();
 }
 
@@ -223,7 +224,6 @@ void saveDayAlarms(const char* dayName, DayAlarms &alarms) {
 
 void loadAlarmsFromFlash() {
   preferences.begin("alarms", true);
-  
   loadDayAlarms("monday", mondayAlarms);
   loadDayAlarms("tuesday", tuesdayAlarms);
   loadDayAlarms("wednesday", wednesdayAlarms);
@@ -231,7 +231,6 @@ void loadAlarmsFromFlash() {
   loadDayAlarms("friday", fridayAlarms);
   loadDayAlarms("saturday", saturdayAlarms);
   loadDayAlarms("sunday", sundayAlarms);
-  
   preferences.end();
 }
 
@@ -756,23 +755,30 @@ void handleNotFound() {
 }
 
 void setup(void) {
+  // Initialize serial first
+  Serial.begin(115200);
+  Serial.println("Booting...");
 
-  // Check if RTC lost power
-  if (rtc.lostPower()) {
-    Serial.println("RTC lost power, setting to compile time!");
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  // Initialize RTC
+  Wire.begin(SDA_PIN, SCL_PIN);
+  if (rtc.begin()) {
+    rtcInitialized = true;
+    Serial.println("RTC initialized");
+    
+    if (rtc.lostPower()) {
+      Serial.println("RTC lost power, setting to compile time");
+      rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    }
+  } else {
+    Serial.println("Couldn't find RTC!");
+    // Consider fallback to system time
   }
 
-  // Add I2C scanner for debugging
-  Serial.println("Scanning I2C devices...");
-  byte error, address;
-  for(address = 1; address < 127; address++ ) {
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-    if (error == 0) {
-      Serial.print("Found device at 0x");
-      Serial.println(address, HEX);
-    }
+  // Initialize LCD only if RTC works
+  if (rtcInitialized) {
+    lcd.begin();
+    lcd.backlight();
+    lcd.print("SMART ALARM");
   }
 
   // Initialize pins
@@ -791,7 +797,13 @@ void setup(void) {
    Serial.println("RTC not found, retrying...");
    delay(1000);
  }
+ loadAlarmsFromFlash();
  
+  if (!rtc.begin()) {
+  Serial.println("Couldn't find RTC");
+  while (1);  // Halt
+}
+
  if (!rtcStarted) {
    Serial.println("Couldn't find RTC. Check wiring!");
    while(1); // Halt if RTC fails
