@@ -723,7 +723,7 @@ const char LOGIN_PAGE[] PROGMEM = R"=====(
       </form>
       
       <form action="/?HOME_AUTOMATION=YES" method="POST">
-        <input type="submit" class="action-btn" name="SUBMIT" value="CONTROL AC APPLIANCES">
+        <input type="submit" class="action-btn" name="SUBMIT" value="MANUAL BUZZER CONTROL">
       </form>
     </div>
     
@@ -886,111 +886,113 @@ const char LOGIN_PAGE[] PROGMEM = R"=====(
     )=====";
     
     const char APPLIANCES[] PROGMEM = R"=====(
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Smart Alarm System - Control Appliances</title>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          background-color: powderblue;
-          margin: 0;
-          padding: 0 15px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        
-        h1, h2, h3 {
-          color: #0066cc;
-          text-align: center;
-        }
-        
-        hr {
-          border: 0;
-          height: 2px;
-          background-color: #3399ff;
-          width: 90%;
-          margin: 10px auto;
-        }
-        
-        .appliance-controls {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          width: 90%;
-          max-width: 400px;
-          margin: 50px auto;
-        }
-        
-        .control-btn {
-          padding: 15px;
-          border-radius: 8px;
-          cursor: pointer;
-          font-size: 18px;
-          font-weight: bold;
-          border: none;
-          text-align: center;
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-          transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .on-btn {
-          background-color: #4CAF50;
-          color: white;
-        }
-        
-        .off-btn {
-          background-color: #f44336;
-          color: white;
-        }
-        
-        .control-btn:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .nav-links {
-          margin-top: 30px;
-          text-align: center;
-        }
-        
-        .nav-links a {
-          display: inline-block;
-          color: #0066cc;
-          text-decoration: none;
-          margin: 0 10px;
-        }
-        
-        .nav-links a:hover {
-          text-decoration: underline;
-        }
-      </style>
-    </head>
-    <body>
-      <h1>SMART ALARM SYSTEM</h1>
-      
-      <hr>
-      <hr>
-      
-      <div class="appliance-controls">
-        <form action="/?LED_ON=YES" method="POST">
-          <input type="submit" class="control-btn on-btn" name="SUBMIT" value="TURN ON APPLIANCE">
-        </form>
-        
-        <form action="/?LED_OFF=YES" method="POST">
-          <input type="submit" class="control-btn off-btn" name="SUBMIT" value="TURN OFF APPLIANCE">
-        </form>
-      </div>
-      
-      <div class="nav-links">
-        <a href="/">HOME</a>
-        <a href="/login?LOGOUT=YES">Log Out</a>
-      </div>
-    </body>
-    </html>
-    )=====";
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Smart Alarm System - Control Buzzer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: powderblue;
+      margin: 0;
+      padding: 0 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    h1, h2, h3 {
+      color: #0066cc;
+      text-align: center;
+    }
+    
+    hr {
+      border: 0;
+      height: 2px;
+      background-color: #3399ff;
+      width: 90%;
+      margin: 10px auto;
+    }
+    
+    .appliance-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 90%;
+      max-width: 400px;
+      margin: 50px auto;
+    }
+    
+    .control-btn {
+      padding: 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .on-btn {
+      background-color: #4CAF50;
+      color: white;
+    }
+    
+    .off-btn {
+      background-color: #f44336;
+      color: white;
+    }
+    
+    .control-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .nav-links {
+      margin-top: 30px;
+      text-align: center;
+    }
+    
+    .nav-links a {
+      display: inline-block;
+      color: #0066cc;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+    
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>SMART ALARM SYSTEM</h1>
+  
+  <hr>
+  <hr>
+  
+  <h2>Manual Buzzer Control</h2>
+  
+  <div class="appliance-controls">
+    <form action="/?LED_ON=YES" method="POST">
+      <input type="submit" class="control-btn on-btn" name="SUBMIT" value="TURN ON BUZZER">
+    </form>
+    
+    <form action="/?LED_OFF=YES" method="POST">
+      <input type="submit" class="control-btn off-btn" name="SUBMIT" value="TURN OFF BUZZER">
+    </form>
+  </div>
+  
+  <div class="nav-links">
+    <a href="/">HOME</a>
+    <a href="/login?LOGOUT=YES">Log Out</a>
+  </div>
+</body>
+</html>
+)=====";
     
     const char ALARM_SET[] PROGMEM = R"=====(
     <!DOCTYPE html>
@@ -1353,7 +1355,7 @@ const char LOGIN_PAGE[] PROGMEM = R"=====(
       <hr>
       
       <div class="success-message">
-        <h2>Your appliances are now ON!</h2>
+        <h2>Buzzer is now ON!</h2>
       </div>
       
       <div class="nav-links">
@@ -1446,7 +1448,7 @@ const char LOGIN_PAGE[] PROGMEM = R"=====(
       <hr>
       
       <div class="success-message">
-        <h2>Your appliances are now OFF!</h2>
+        <h2>Buzzer is now OFF!</h2>
       </div>
       
       <div class="nav-links">
